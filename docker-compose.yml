@@ -1,6 +1,28 @@
 version: "3.9"
 
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: advisors-api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://advisor:advisor@postgres:5432/advisor_code_analyzer
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      MODEL_PROVIDER: openai
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   postgres:
     image: postgres:16-alpine
     container_name: advisors-postgres
