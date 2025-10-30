@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import DateTime, Index, Integer, Text, create_engine, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -29,12 +30,29 @@ def _compile_uuid_default_sqlite(element, compiler, **kw):  # noqa: D401, ANN001
     return "hex(randomblob(16))"
 
 
-settings = get_settings()
+# Module-level variables for backward compatibility
+# Will be initialized by _create_engine_from_settings()
+engine: Any = None
+SessionLocal: Any = None
 
-engine = create_engine(settings.database_url, pool_pre_ping=True, future=True)
-SessionLocal = sessionmaker(
-    bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-)
+
+def _create_engine_from_settings() -> Any:
+    """Create database engine from settings. Internal function."""
+    settings = get_settings()
+    return create_engine(settings.database_url, pool_pre_ping=True, future=True)
+
+
+def _create_sessionmaker(eng: Any) -> Any:
+    """Create session maker from engine. Internal function."""
+    return sessionmaker(
+        bind=eng, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+
+
+# Initialize module-level variables
+if engine is None:
+    engine = _create_engine_from_settings()
+    SessionLocal = _create_sessionmaker(engine)
 
 
 class Base(DeclarativeBase):
@@ -52,7 +70,6 @@ class AnalysisHistory(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,
     )
     code_hash: Mapped[str] = mapped_column(Text, nullable=False)

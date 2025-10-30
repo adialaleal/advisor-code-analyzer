@@ -25,26 +25,37 @@ class CrewAIIntegrationError(RuntimeError):
     pass
 
 
-@tool("analyze_python_code")
-def analyze_python_code(code_snippet: str) -> str:
+def create_analyze_tool(analyzer: CodeAnalyzer) -> Any:
     """
-    Analisa um trecho de código Python e retorna sugestões de melhoria em formato JSON.
+    Create a CrewAI tool that uses the provided analyzer.
 
     Args:
-        code_snippet: O código Python a ser analisado.
+        analyzer: The code analyzer instance to use
 
     Returns:
-        Um JSON com code_hash, suggestions e analysis_time_ms.
+        A CrewAI tool function
     """
-    analyzer = CodeAnalyzer()
-    result = analyzer.analyze(code_snippet)
-    code_hash = hashlib.sha256(code_snippet.encode("utf-8")).hexdigest()
-    payload = {
-        "code_hash": code_hash,
-        "suggestions": result.suggestions,
-        "analysis_time_ms": result.analysis_time_ms,
-    }
-    return json.dumps(payload, ensure_ascii=False)
+    @tool("analyze_python_code")
+    def analyze_python_code(code_snippet: str) -> str:
+        """
+        Analisa um trecho de código Python e retorna sugestões de melhoria em formato JSON.
+
+        Args:
+            code_snippet: O código Python a ser analisado.
+
+        Returns:
+            Um JSON com code_hash, suggestions e analysis_time_ms.
+        """
+        result = analyzer.analyze(code_snippet)
+        code_hash = hashlib.sha256(code_snippet.encode("utf-8")).hexdigest()
+        payload = {
+            "code_hash": code_hash,
+            "suggestions": result.suggestions,
+            "analysis_time_ms": result.analysis_time_ms,
+        }
+        return json.dumps(payload, ensure_ascii=False)
+
+    return analyze_python_code
 
 
 class AdvisorCrewIntegration:
@@ -64,6 +75,9 @@ class AdvisorCrewIntegration:
         # Ex.: {"model": "gemini/gemini-2.0-flash", ...}
         llm_instance = CrewLLM(**llm_config)
 
+        # Create tool with injected analyzer
+        analyze_tool = create_analyze_tool(self.analyzer)
+
         return Agent(
             role="Code Optimization Advisor",
             goal=(
@@ -76,7 +90,7 @@ class AdvisorCrewIntegration:
             ),
             allow_delegation=False,
             llm=llm_instance,
-            tools=[analyze_python_code],
+            tools=[analyze_tool],
         )
 
     def build_sample_workflow(self) -> Dict[str, Any]:

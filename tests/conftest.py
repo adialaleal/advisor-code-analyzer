@@ -8,25 +8,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.compiler import compiles
-
-
-@compiles(JSONB, "sqlite")
-def _compile_jsonb_sqlite(_type, compiler, **kw):  # noqa: D401, ANN001
-    return "JSON"
-
-# Override UUID default for SQLite
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import text
-
-@compiles(UUID, "sqlite")
-def _compile_uuid_sqlite(_type, compiler, **kw):  # noqa: D401, ANN001
-    return "TEXT"
-
-# Override the default value for UUID in SQLite
-def _compile_uuid_default_sqlite(element, compiler, **kw):  # noqa: D401, ANN001
-    return "hex(randomblob(16))"
 
 # Ensure required environment variables exist before importing application modules
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")

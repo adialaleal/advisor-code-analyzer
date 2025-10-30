@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, status
@@ -8,7 +7,12 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_cache_service, get_code_analyzer, get_db
+from app.api.dependencies import (
+    get_analysis_service,
+    get_cache_service,
+    get_code_analyzer,
+    get_db,
+)
 from app.config import Settings, get_settings
 from app.crewai_integration.agent import AdvisorCrewIntegration
 from app.models.schemas import (
@@ -17,16 +21,12 @@ from app.models.schemas import (
     LLMAnalysisResponse,
     Suggestion,
 )
+from app.services.analysis_service import CodeAnalysisService
 from app.services.cache_service import CacheService
 from app.services.code_analyzer import CodeAnalyzer
-from app.services.database_service import AnalysisHistoryService
 
 
 router = APIRouter()
-
-
-def _suggestion_dict_to_model(data: Dict[str, Any]) -> Suggestion:
-    return Suggestion(**data)
 
 
 @router.post(
@@ -34,50 +34,14 @@ def _suggestion_dict_to_model(data: Dict[str, Any]) -> Suggestion:
 )
 def analyze_code(
     payload: CodeAnalysisRequest,
-    db: Session = Depends(get_db),
-    analyzer: CodeAnalyzer = Depends(get_code_analyzer),
-    cache: CacheService = Depends(get_cache_service),
+    analysis_service: CodeAnalysisService = Depends(get_analysis_service),
 ) -> CodeAnalysisResponse:
-    code_hash = hashlib.sha256(payload.code.encode("utf-8")).hexdigest()
-    cache_key = f"analysis:{code_hash}"
-
-    cached = cache.get(cache_key)
-    if cached is not None:
-        suggestions = [
-            _suggestion_dict_to_model(item) for item in cached["suggestions"]
-        ]
-        return CodeAnalysisResponse(
-            code_hash=cached["code_hash"],
-            suggestions=suggestions,
-            analysis_time_ms=cached["analysis_time_ms"],
-            cached=True,
-        )
-
-    result = analyzer.analyze(payload.code)
-
-    db_service = AnalysisHistoryService(db)
-    db_service.create(
-        code_hash=code_hash,
-        code_snippet=payload.code,
-        suggestions=result.suggestions,
-        analysis_time_ms=result.analysis_time_ms,
+    """Analyze code with caching and persistence."""
+    result = analysis_service.analyze_code(
+        code=payload.code,
         language_version=payload.language_version,
     )
-
-    response_payload = {
-        "code_hash": code_hash,
-        "suggestions": result.suggestions,
-        "analysis_time_ms": result.analysis_time_ms,
-    }
-    cache.set(cache_key, response_payload)
-
-    suggestions = [_suggestion_dict_to_model(item) for item in result.suggestions]
-    return CodeAnalysisResponse(
-        code_hash=code_hash,
-        suggestions=suggestions,
-        analysis_time_ms=result.analysis_time_ms,
-        cached=False,
-    )
+    return CodeAnalysisResponse(**result)
 
 
 @router.get("/health")
@@ -135,9 +99,7 @@ def analyze_code_with_llm(
 
     # Obtém as sugestões brutas do analisador
     raw_result = analyzer.analyze(payload.code)
-    raw_suggestions = [
-        _suggestion_dict_to_model(item) for item in raw_result.suggestions
-    ]
+    raw_suggestions = [Suggestion(**item) for item in raw_result.suggestions]
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
 

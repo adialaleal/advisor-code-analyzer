@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Suggestion(BaseModel):
@@ -41,6 +41,8 @@ class LLMAnalysisResponse(BaseModel):
 
 
 class AnalysisHistoryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     code_hash: str
     code_snippet: Optional[str]
@@ -48,7 +50,4 @@ class AnalysisHistoryRead(BaseModel):
     analysis_time_ms: Optional[int]
     language_version: Optional[str]
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 

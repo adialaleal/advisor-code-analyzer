@@ -10,7 +10,6 @@ __pycache__/
 .venv/
 venv/
 .env
-.env.*
 
 # OS / IDE
 .DS_Store

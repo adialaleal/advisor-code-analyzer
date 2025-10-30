@@ -110,12 +110,27 @@ class AzureOpenAIModelProvider(BaseModelProvider):
 
 
 class ModelProviderFactory:
-    provider_map = {
+    """Factory for creating model providers with dynamic registration support."""
+
+    provider_map: dict[str, type[BaseModelProvider]] = {
         "openai": OpenAIModelProvider,
         "gemini": GeminiModelProvider,
         "anthropic": AnthropicModelProvider,
         "azure_openai": AzureOpenAIModelProvider,
     }
+
+    @classmethod
+    def register_provider(
+        cls, name: str, provider_class: type[BaseModelProvider]
+    ) -> None:
+        """
+        Register a new model provider dynamically.
+
+        Args:
+            name: Provider name identifier
+            provider_class: Provider class implementation
+        """
+        cls.provider_map[name.lower()] = provider_class
 
     @classmethod
     def from_settings(cls, settings: Settings) -> BaseModelProvider:

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import redis
@@ -27,10 +27,15 @@ def test_memory_cache_expiration(monkeypatch: pytest.MonkeyPatch) -> None:
 
     cache = CacheService("redis://example:6379/0", default_ttl_seconds=1)
     cache.set("key", {"value": 1})
-
+    
+    # Access the memory backend to manipulate expiry time for testing
+    from app.services.cache.backends import MemoryCacheBackend
+    memory_backend = cache._fallback  # type: ignore[attr-defined]
+    assert isinstance(memory_backend, MemoryCacheBackend)
+    
     # Force the entry to expire by manipulating the internal store
-    _, value = cache._memory_cache["key"]  # type: ignore[attr-defined]
-    cache._memory_cache["key"] = (datetime.utcnow() - timedelta(seconds=5), value)  # type: ignore[attr-defined]
+    _, value = memory_backend._store["key"]
+    memory_backend._store["key"] = (datetime.now(timezone.utc) - timedelta(seconds=5), value)
 
     assert cache.get("key") is None
 
