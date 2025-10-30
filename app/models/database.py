@@ -52,7 +52,7 @@ class AnalysisHistory(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("(hex(randomblob(16)))"),
+        server_default=text("gen_random_uuid()"),
         default=uuid.uuid4,
     )
     code_hash: Mapped[str] = mapped_column(Text, nullable=False)

@@ -39,14 +39,16 @@ class OpenAIModelProvider(BaseModelProvider):
     provider_name = "openai"
 
     def get_llm_config(self) -> Dict[str, Any]:
-        model = self.model_name or "gpt-4o-mini"
+        # CrewAI/LiteLLM espera um dict plano com 'model' e usa OPENAI_API_KEY
+        # Formato recomendado: model="openai/<model>"
+        base_model = self.model_name or "gpt-4o-mini"
+        full_model = f"openai/{base_model}"
+        if self.api_key:
+            os.environ["OPENAI_API_KEY"] = self.api_key  # garante disponibilidade no ambiente
         return {
-            "provider": self.provider_name,
-            "config": {
-                "model": model,
-                "api_key": self.api_key,
-                **self.extra,
-            },
+            "model": full_model,
+            "api_key": self.api_key,
+            **self.extra,
         }
 
 

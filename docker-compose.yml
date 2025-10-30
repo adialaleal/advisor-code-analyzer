@@ -1,6 +1,23 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: advisors-postgres
+    environment:
+      POSTGRES_USER: advisor
+      POSTGRES_PASSWORD: advisor
+      POSTGRES_DB: advisor_code_analyzer
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U advisor -d advisor_code_analyzer"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
   redis:
     image: redis:7.4-alpine
     container_name: advisors-redis
@@ -16,6 +33,7 @@ services:
       - redis-data:/data
 
 volumes:
+  pg-data:
   redis-data:
 
 
