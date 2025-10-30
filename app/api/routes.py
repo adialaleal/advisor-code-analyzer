@@ -75,6 +75,7 @@ def analyze_code_with_llm(
     payload: CodeAnalysisRequest,
     analyzer: CodeAnalyzer = Depends(get_code_analyzer),
     settings: Settings = Depends(get_settings),
+    analysis_service: CodeAnalysisService = Depends(get_analysis_service),
 ) -> LLMAnalysisResponse:
     """
     Analisa código Python usando CrewAI com LLM para gerar relatório priorizado.
@@ -97,9 +98,17 @@ def analyze_code_with_llm(
     except Exception as exc:  # pragma: no cover - robustez em runtime
         report = f"LLM execution failed: {exc}"
 
-    # Obtém as sugestões brutas do analisador
+    # Obtém as sugestões brutas do analisador e persiste no banco
     raw_result = analyzer.analyze(payload.code)
     raw_suggestions = [Suggestion(**item) for item in raw_result.suggestions]
+
+    # Persiste a análise no banco de dados usando o serviço de análise
+    analysis_service.analyze_code(
+        code=payload.code,
+        language_version=payload.language_version,
+        use_cache=False,  # Não usar cache para análise com LLM
+        persist=True,
+    )
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
 

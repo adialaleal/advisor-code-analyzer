@@ -5,6 +5,7 @@ Agente FastAPI que analisa trechos de código Python e sugere melhorias com base
 > **Arquitetura SOLID**: A aplicação foi refatorada seguindo os princípios SOLID para garantir código modular, extensível e testável. Consulte a seção [Arquitetura](#arquitetura) para mais detalhes.
 
 ## Sumário
+
 - [Arquitetura](#arquitetura)
 - [Pré-requisitos](#pré-requisitos)
 - [Configuração](#configuração)
@@ -49,23 +50,28 @@ scripts/
 ### Princípios SOLID Aplicados
 
 **Single Responsibility Principle (SRP):**
+
 - Cada classe tem uma única responsabilidade bem definida
 - Regras de análise separadas (`ImportAnalysisRule`, `UnusedVariableRule`, etc.)
 - Backends de cache isolados (`RedisCacheBackend`, `MemoryCacheBackend`)
 
 **Open/Closed Principle (OCP):**
+
 - Sistema extensível sem modificar código existente
 - Novas regras de análise podem ser adicionadas facilmente
 - ModelProviderFactory permite registrar novos provedores dinamicamente
 
 **Liskov Substitution Principle (LSP):**
+
 - Backends de cache são intercambiáveis via interface
 
 **Interface Segregation Principle (ISP):**
+
 - Interfaces específicas para cada contrato (`ICacheService`, `ICodeAnalyzer`, etc.)
 - Protocolos Python definem contratos claros
 
 **Dependency Inversion Principle (DIP):**
+
 - Dependências injetadas via FastAPI Depends
 - Alto nível não depende de baixo nível; ambos dependem de abstrações
 - `CodeAnalysisService` orquestra toda a lógica de análise
@@ -82,38 +88,60 @@ scripts/
 - **AdvisorCrewIntegration** (`app/crewai_integration/agent.py`): expõe o agente para um workflow CrewAI
 
 ## Pré-requisitos
+
 - Python 3.11+
 - PostgreSQL (ou container existente)
 - Docker (para subir Redis via `docker-compose`)
 
 ## Configuração
+
 1. Crie e ajuste o arquivo `.env` a partir do exemplo:
+
    ```bash
    cp .env.example .env
    ```
-   - `DATABASE_URL`: string SQLAlchemy para seu PostgreSQL.
-   - `REDIS_URL`: instância local ou remota do Redis.
-   - `MODEL_PROVIDER`: `openai`, `gemini`, `anthropic` ou `azure_openai`.
-   - `CREWAI_API_KEY`: chave reutilizada pelo provedor escolhido (considere variáveis específicas conforme docs oficiais da CrewAI [link](https://docs.crewai.com)).
-   - Opcional: `AZURE_OPENAI_ENDPOINT` e `AZURE_OPENAI_DEPLOYMENT` para uso no Azure.
+
+   - `DATABASE_URL`: string SQLAlchemy para seu PostgreSQL
+   - `REDIS_URL`: instância local ou remota do Redis
+   - `MODEL_PROVIDER`: `openai`, `gemini`, `anthropic` ou `azure_openai`
+   
+   - **Chaves de API**: Configure todas as chaves de provedores que você queira usar:
+     ```env
+     # Exemplo: configurando múltiplos provedores de uma vez
+     OPENAI_API_KEY=sk-...
+     GOOGLE_API_KEY=AIza...
+     ANTHROPIC_API_KEY=sk-ant-...
+     ```
+     
+     O sistema detecta automaticamente qual chave usar baseado no `MODEL_PROVIDER` atual. Você não precisa reconfigurar quando trocar de provedor - apenas altere `MODEL_PROVIDER`!
+     
+     - OpenAI: `OPENAI_API_KEY`
+     - Gemini: `GOOGLE_API_KEY` ou `GEMINI_API_KEY`
+     - Anthropic/Claude: `ANTHROPIC_API_KEY` ou `CLAUDE_API_KEY`
+     - Azure OpenAI: `AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_ENDPOINT` + `AZURE_OPENAI_DEPLOYMENT`
 
 2. Instale as dependências Python (idealmente em um ambiente virtual):
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. Suba o Redis localmente:
+
    ```bash
    docker-compose up -d
    ```
 
 4. Execute o script de criação da tabela (ajuste host/porta se necessário):
+
    ```bash
    psql "$DATABASE_URL" -f scripts/init_db.sql
    ```
 
 ## Execução
+
 Inicie a API com Uvicorn:
+
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -121,15 +149,19 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 A aplicação expõe os endpoints em `http://localhost:8000/api/v1`.
 
 ## Testes
+
 - **Guia completo**: consulte `docs/testing.md` para pré-requisitos, exemplos de execução do `pytest` e roteiros de testes manuais (curl/Postman).
 - **Execução rápida**: `python3 -m pytest` valida regras do analisador, serviço de cache, camada de persistência e endpoints principais.
 - **Coverage**: Todos os 8 testes passam, incluindo testes unitários para regras individuais de análise, backends de cache, e testes de integração da API.
 
 ## Endpoints
+
 ### `POST /api/v1/analyze-code`
+
 Analisa código Python usando análise estática (AST). Retorna sugestões técnicas baseadas em regras pré-definidas.
 
 **Corpo:**
+
 ```json
 {
   "code": "def foo():\n    print('hello')\n",
@@ -138,6 +170,7 @@ Analisa código Python usando análise estática (AST). Retorna sugestões técn
 ```
 
 **Resposta:**
+
 ```json
 {
   "code_hash": "...sha256...",
@@ -160,9 +193,11 @@ Analisa código Python usando análise estática (AST). Retorna sugestões técn
 - Toda análise é registrada em `analysis_history`.
 
 ### `POST /api/v1/analyze-code-llm` 🆕
+
 Analisa código Python usando CrewAI com LLM para gerar relatório priorizado e contextualizado. Simula a integração do agente com a plataforma CrewAI conforme descrito no desafio técnico.
 
 **Corpo:**
+
 ```json
 {
   "code": "def foo():\n    print('hello')\n    return 1",
@@ -171,6 +206,7 @@ Analisa código Python usando CrewAI com LLM para gerar relatório priorizado e 
 ```
 
 **Resposta:**
+
 ```json
 {
   "code_hash": "...sha256...",
@@ -200,22 +236,27 @@ Analisa código Python usando CrewAI com LLM para gerar relatório priorizado e 
 ```
 
 **Como Funciona:**
+
 1. O código é analisado pelo `CodeAnalyzer` (análise estática).
 2. As sugestões são enviadas para o LLM (Gemini, GPT, Claude, etc.) via CrewAI.
 3. O LLM prioriza as sugestões, adiciona contexto e justificativas.
 4. Retorna tanto as sugestões brutas quanto o relatório gerado pelo LLM.
 
 **Requisitos:**
-- `CREWAI_API_KEY` configurado no `.env`.
+
 - `MODEL_PROVIDER` definido (`openai`, `gemini`, `anthropic`, ou `azure_openai`).
+- Chave de API apropriada configurada no `.env` conforme o provedor escolhido.
 
 **⚠️ Nota:** A integração com CrewAI/LLM requer configuração adicional conforme documentação oficial do CrewAI. O endpoint `/api/v1/analyze-code` (análise estática) funciona sem dependências adicionais de LLM.
 
 ### `GET /api/v1/health`
+
 Retorna status das dependências (`database`, `cache`, `model_provider`).
 
 ## Base de Dados
+
 Tabela `analysis_history`:
+
 - `id` (UUID, gerado automaticamente)
 - `code_hash` (hash SHA-256 do snippet)
 - `code_snippet` (texto bruto, opcional)
@@ -224,11 +265,13 @@ Tabela `analysis_history`:
 - `created_at` (`TIMESTAMPTZ`, default `NOW()`)
 
 Índices:
+
 - BTREE em `created_at`
 - BTREE em `code_hash`
 - GIN em `suggestions`
 
 Recomendações adicionais documentadas:
+
 - Particionamento por faixa de datas para alto volume.
 - Ajuste de connection pooling (`pool_size`, `max_overflow`).
 - Extensão `pgcrypto` habilitada pelo script para gerar UUID.
@@ -257,12 +300,14 @@ Usuario → API Endpoint → CrewAI Workflow
 ### Como Funciona
 
 **Endpoint com LLM (`/api/v1/analyze-code-llm`):**
+
 - O código é primeiro analisado pelo `CodeAnalyzer` (análise estática)
 - As sugestões são enviadas para o LLM via CrewAI
 - O LLM prioriza as sugestões, adiciona contexto e justificativas
 - Retorna tanto as sugestões brutas quanto o relatório gerado pelo LLM
 
 **Tool CrewAI (`analyze_python_code`):**
+
 - `CodeAnalyzer` é exposto como uma tool do CrewAI
 - Pode ser reutilizado em outros workflows CrewAI
 - Mantém consistência com a API REST
@@ -270,8 +315,9 @@ Usuario → API Endpoint → CrewAI Workflow
 ### Configuração
 
 1. Selecione o provedor via `MODEL_PROVIDER` (`openai`, `gemini`, `anthropic`, ou `azure_openai`)
-2. Defina `CREWAI_API_KEY` no `.env`
+2. Defina a chave de API apropriada no `.env` (veja seção [Configuração](#configuração) acima)
 3. Utilize `AdvisorCrewIntegration` para criar o agente:
+
    ```python
    from app.config import get_settings
    from app.crewai_integration.agent import AdvisorCrewIntegration
@@ -298,6 +344,7 @@ Usuario → API Endpoint → CrewAI Workflow
 Consulte a documentação oficial da CrewAI para conectar triggers e flows empresariais: [CrewAI Docs](https://docs.crewai.com)
 
 ## Escalabilidade e Observabilidade
+
 - **Cache**: Redis com TTL de 1h. Fallback in-memory garante disponibilidade local.
 - **Filas**: Utilize RabbitMQ ou Redis Streams para enviar análises volumosas a workers dedicados (ex.: Celery, RQ). O README inclui passos para evolução futura.
 - **Horizontal Scaling**: API stateless; basta replicar instâncias atrás de um load balancer. Configure sticky sessions apenas se necessário.
@@ -388,6 +435,7 @@ cache = CacheService("", primary_backend=my_backend)
 ```
 
 ## Testes manuais sugeridos
+
 1. **Happy path**: enviar snippet válido e verificar gravação na tabela.
 2. **Cache hit**: repetir o mesmo snippet e checar `cached=true`.
 3. **Erro de sintaxe**: garantir que mensagens de erro sejam retornadas.

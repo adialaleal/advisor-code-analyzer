@@ -141,17 +141,22 @@ class ModelProviderFactory:
                 f"Provedor de modelo '{settings.model_provider}' não suportado."
             )
 
-        extra = {}
-        if provider_name == "gemini":
-            extra["google_api_key"] = settings.crewai_api_key
-        if provider_name == "azure_openai":
-            extra.update(
-                {
-                    "azure_endpoint": getattr(settings, "azure_endpoint", None),
-                    "deployment_name": getattr(settings, "deployment_name", None),
-                }
+        # Get API key using the new Settings method
+        api_key = settings.get_api_key()
+        if not api_key:
+            raise ValueError(
+                f"Nenhuma API key encontrada para o provedor '{provider_name}'. "
+                f"Configure {provider_name.upper()}_API_KEY no .env"
             )
 
+        # Get provider-specific configuration
+        provider_config = settings.get_provider_config()
+        
+        # Remove api_key and model_name as they're passed separately
+        extra = {k: v for k, v in provider_config.items() if k not in ("api_key", "model_name")}
+
         return provider_cls(
-            model_name=settings.model_name, api_key=settings.crewai_api_key, **extra
+            model_name=settings.model_name, 
+            api_key=api_key, 
+            **extra
         )
