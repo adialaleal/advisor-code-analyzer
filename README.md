@@ -148,6 +148,30 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 A aplicação expõe os endpoints em `http://localhost:8000/api/v1`.
 
+### Execução via Docker Compose
+
+> Sobe Postgres, Redis e a API FastAPI
+
+```bash
+docker-compose up -d
+
+# Verificar saúde dos serviços
+curl -s http://localhost:8000/api/v1/health | jq
+
+# Logs da API
+docker-compose logs -f api
+
+# Parar e remover
+docker-compose down -v
+```
+
+Variáveis já definidas para o serviço `api` (no compose):
+
+- `DATABASE_URL`: `postgresql+psycopg2://advisor:advisor@postgres:5432/advisor_code_analyzer`
+- `REDIS_URL`: `redis://redis:6379/0`
+- `LOG_LEVEL`: `INFO`
+- `MODEL_PROVIDER`: `openai` (ajuste conforme necessário)
+
 ## Testes
 
 - **Guia completo**: consulte `docs/testing.md` para pré-requisitos, exemplos de execução do `pytest` e roteiros de testes manuais (curl/Postman).
