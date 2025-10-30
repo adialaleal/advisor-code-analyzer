@@ -1,0 +1,12 @@
+fastapi==0.111.0
+uvicorn[standard]>=0.31.1
+crewai[google-genai]==1.2.1
+sqlalchemy==2.0.31
+psycopg2-binary>=2.9.9
+redis==5.0.4
+crewai==1.2.1
+pydantic-settings>=2.10.1
+python-dotenv>=1.1.1
+pytest==8.3.3
+
+
