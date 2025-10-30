@@ -434,6 +434,50 @@ my_backend = MyCacheBackend()
 cache = CacheService("", primary_backend=my_backend)
 ```
 
+## Roadmap de Features
+
+> Ideias de evolução focadas em impacto para usuários e times
+
+- **Auto-fix e relatórios acionáveis**
+  - Sugestões com edits aplicáveis (imports, naming, docstrings, prints→logging)
+  - Exportação **SARIF** para integração com Code Scanning
+  - Ranking por impacto (severidade × frequência × esforço)
+
+- **Integração com o fluxo de desenvolvimento**
+  - App para **GitHub/GitLab** comentando em PRs (+ autofix opcional)
+  - **CLI** (`mirante scan`) com saída JSON/SARIF e autofix
+  - Plugins **IDE** (VSCode/JetBrains) com dicas inline e quick-fix
+
+- **Análise de projeto e contexto ampliado**
+  - Análise cross-file (imports/chamadas) e hotspots do repositório
+  - Correlação com commits recentes e dependências (breaking changes)
+
+- **LLM avançado**
+  - Plano de refatoração por módulo com riscos e milestones
+  - Explicações educativas e links para docs oficiais/estilo interno
+  - Perfis por equipe (style guides, prompts versionados)
+
+- **Qualidade, segurança e compliance**
+  - Regras de segurança (eval/exec, secrets, SQL, auth fraca)
+  - Packs de compliance (OWASP, PCI, LGPD) e políticas por repo
+
+- **Extensibilidade**
+  - Marketplace de regras e **DSL** declarativa para novas regras
+  - Webhooks/integrações (Slack, Jira/Linear, Notion)
+
+- **Plataforma e linguagens**
+  - Suporte a JS/TS, Go, Java, Terraform e SQL
+  - Checagens arquiteturais (camadas/dep rules) e cobertura/complexidade gates
+
+- **Operação e enterprise**
+  - Execução on‑prem/air‑gapped, SSO (SAML/OIDC), RBAC/tenancy
+  - Observabilidade de ponta a ponta: métricas, tracing e Sentry
+
+- **Roadmap sugerido**
+  - Curto prazo: CLI + SARIF + GitHub Action; autofix básico
+  - Médio prazo: cross-file + refactor plan; plugins IDE; DSL de regras
+  - Longo prazo: multi‑linguagem; compliance packs; on‑prem; campanhas de correção
+
 ## Testes manuais sugeridos
 
 1. **Happy path**: enviar snippet válido e verificar gravação na tabela.
